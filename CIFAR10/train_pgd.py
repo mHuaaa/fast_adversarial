@@ -15,7 +15,6 @@ from utils import (upper_limit, lower_limit, std, clamp, get_loaders,
 
 logger = logging.getLogger(__name__)
 
-
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch-size', default=128, type=int)
@@ -135,12 +134,11 @@ def main():
     model_test.float()
     model_test.eval()
 
-    pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 50, 10)
+    pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 30, 3)
     test_loss, test_acc = evaluate_standard(test_loader, model_test)
 
     logger.info('Test Loss \t Test Acc \t PGD Loss \t PGD Acc')
     logger.info('%.4f \t \t %.4f \t %.4f \t %.4f', test_loss, test_acc, pgd_loss, pgd_acc)
-
 
 if __name__ == "__main__":
     main()

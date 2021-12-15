@@ -38,7 +38,6 @@ def get_args():
         help='Maintain FP32 master weights to accompany any FP16 model weights, not applicable for O1 opt level')
     return parser.parse_args()
 
-
 def main():
     args = get_args()
 
@@ -112,6 +111,7 @@ def main():
         lr = scheduler.get_lr()[0]
         logger.info('%d \t %.1f \t \t %.4f \t %.4f \t %.4f',
             epoch, epoch_time - start_epoch_time, lr, train_loss/train_n, train_acc/train_n)
+
     train_time = time.time()
     torch.save(model.state_dict(), os.path.join(args.out_dir, 'model.pth'))
     logger.info('Total train time: %.4f minutes', (train_time - start_train_time)/60)
@@ -127,7 +127,6 @@ def main():
 
     logger.info('Test Loss \t Test Acc \t PGD Loss \t PGD Acc')
     logger.info('%.4f \t \t %.4f \t %.4f \t %.4f', test_loss, test_acc, pgd_loss, pgd_acc)
-
 
 if __name__ == "__main__":
     main()

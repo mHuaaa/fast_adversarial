@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from wrn_madry import Wide_ResNet_Madry
 from preact_resnet import PreActResNet18
 from utils import (upper_limit, lower_limit, std, clamp, get_loaders,
     evaluate_pgd, evaluate_standard)
@@ -19,6 +20,8 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch-size', default=128, type=int)
     parser.add_argument('--data-dir', default='../../cifar-data', type=str)
+    parser.add_argument('--data-type', default='test', type=str)
+    parser.add_argument('--net', default='pre_act_resnet18', type=str, choices=['pre_act_resnet18', 'WRN-32-10'])
     # parser.add_argument('--epochs', default=15, type=int)
     # parser.add_argument('--lr-schedule', default='cyclic', type=str, choices=['cyclic', 'multistep'])
     # parser.add_argument('--lr-min', default=0., type=float)
@@ -51,7 +54,8 @@ def main():
 
     if not os.path.exists(args.out_dir):
         os.mkdir(args.out_dir)
-    logfile = os.path.join(args.out_dir, 'eval_output.log')
+    logfile = os.path.join(args.out_dir, 'eval_output.log') if args.data_type == "test" else os.path.join(args.out_dir,
+                                                                                                          'eval_train_output.log')
     if os.path.exists(logfile):
         os.remove(logfile)
 
@@ -68,8 +72,17 @@ def main():
 
     train_loader, test_loader = get_loaders(args.data_dir, args.batch_size)
 
+    data_loader = train_loader if args.data_type == "train" else test_loader
+
     # Evaluation
-    model_test = PreActResNet18().cuda()
+    if args.net == "pre_act_resnet18":
+        model_test = PreActResNet18().cuda()
+    elif args.net == "WRN-32-10":
+        model_test = Wide_ResNet_Madry(depth=32, num_classes=10, widen_factor=10, dropRate=0.0).cuda()
+    else:
+        exit(0)
+
+    # model_test = PreActResNet18().cuda()
     start_time = time.time()
     logger.info('Model \t Test Loss \t Test Acc \t PGD Loss \t PGD Acc')
     start, end, step = args.start_model, args.end_model, args.skip_step
@@ -79,8 +92,8 @@ def main():
         model_test.float()
         model_test.eval()
 
-        pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, args.attack_iters, args.restarts)
-        test_loss, test_acc = evaluate_standard(test_loader, model_test)
+        pgd_loss, pgd_acc = evaluate_pgd(data_loader, model_test, args.attack_iters, args.restarts)
+        test_loss, test_acc = evaluate_standard(data_loader, model_test)
 
         logger.info('%d \t %.4f \t \t %.4f \t %.4f \t %.4f', i, test_loss, test_acc, pgd_loss, pgd_acc)
     eval_time = time.time()

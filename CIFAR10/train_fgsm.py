@@ -114,6 +114,7 @@ def main():
             with amp.scale_loss(loss, opt) as scaled_loss:
                 scaled_loss.backward()
             grad = delta.grad.detach()
+            # ????? 这个alpha的设置让我感觉很奇怪。
             delta.data = clamp(delta + alpha * torch.sign(grad), -epsilon, epsilon)
             delta.data[:X.size(0)] = clamp(delta[:X.size(0)], lower_limit - X, upper_limit - X)
             delta = delta.detach()
@@ -127,6 +128,7 @@ def main():
             train_acc += (output.max(1)[1] == y).sum().item()
             train_n += y.size(0)
             scheduler.step()
+
         if args.early_stop:
             # Check current PGD robustness of model using random minibatch
             X, y = first_batch

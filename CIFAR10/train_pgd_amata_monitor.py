@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from preact_resnet import PreActResNet18
+from wrn_madry import Wide_ResNet_Madry
 from utils import (upper_limit, lower_limit, std, clamp, get_loaders,
     evaluate_pgd, evaluate_standard)
 
@@ -19,6 +20,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch-size', default=128, type=int)
     parser.add_argument('--data-dir', default='../../cifar-data', type=str)
+    parser.add_argument('--net', default='pre_act_resnet18', type=str, choices=['pre_act_resnet18', 'WRN-32-10'])
     parser.add_argument('--epochs', default=15, type=int)
     parser.add_argument('--lr-schedule', default='cyclic', type=str, choices=['cyclic', 'multistep'])
     parser.add_argument('--lr-min', default=0., type=float)
@@ -95,8 +97,13 @@ def main():
     train_loader, test_loader = get_loaders(args.data_dir, args.batch_size)
 
     epsilon = (args.epsilon / 255.) / std
+    if args.net == "pre_adc_resnet18":
+        model = PreActResNet18().cuda()
+    elif args.net == "WRN-32-10":
+        model = Wide_ResNet_Madry(depth=32, num_classes=10, widen_factor=10, dropRate=0.0).cuda()
+    else:
+        exit(0)
 
-    model = PreActResNet18().cuda()
     model.train()
 
     opt = torch.optim.SGD(model.parameters(), lr=args.lr_max, momentum=args.momentum, weight_decay=args.weight_decay)
@@ -163,6 +170,7 @@ def main():
         logger.info('%d \t %.1f \t \t %.4f \t %d \t %d \t %.4f \t %.4f',
             epoch, epoch_time - start_epoch_time, lr, Kt, Alphat, train_loss/train_n, train_acc/train_n)
         torch.save(model.state_dict(), os.path.join(args.out_dir, 'model_'+str(epoch)+ '.pth'))
+
     train_time = time.time()
     torch.save(model.state_dict(), os.path.join(args.out_dir, 'model.pth'))
     logger.info('Total train time: %.4f minutes', (train_time - start_train_time)/60)

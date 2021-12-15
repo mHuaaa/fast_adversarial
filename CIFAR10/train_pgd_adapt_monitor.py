@@ -83,8 +83,21 @@ def adaptCompute(Acct, args):
     elif args.adapt_mode == 2:
         Alphat = 7/(1+np.exp(6*(Acct-0.5)))+1
         Kt = 10*Acct/Alphat
+    elif args.adapt_mode == 3:
+        Alphat = 15/(1+np.exp(10*(Acct-0.5)))+1
+        Kt = 10*Acct/Alphat
+    elif args.adapt_mode == 4:
+        Alphat = 14/(1+np.exp(10*(Acct-0.5)))+2
+        Kt = 20/Alphat
+    elif args.adapt_mode == 8:
+        Alphat = 14/(1+np.exp(25*(Acct-0.5)))+2
+        Kt = 20/Alphat
     Alphat = np.round(Alphat)
-    Kt = np.ceil(Kt).astype(int)
+
+    if args.adapt_mode in [4, 8]:
+        Kt = np.round(Kt).astype(int)
+    else:
+        Kt = np.ceil(Kt).astype(int)
     return Kt, Alphat
 
 def main():

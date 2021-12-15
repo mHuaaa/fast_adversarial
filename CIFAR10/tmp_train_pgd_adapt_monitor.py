@@ -88,17 +88,38 @@ def adaptCompute(Acct, args):
     return Kt, Alphat
 
 def adaptCompute_tmp():
+    # prev_log_file = "exp/multistep/pgd_adapt_100_out/output.log"
+    #
+    # prev_params = []
+    # with open(prev_log_file, "r") as f:
+    #     lines = f.readlines()
+    #     lines = lines[2:-3]
+    #     for l in lines:
+    #         ll = l.strip().split("\t")
+    #         prev_params.append([int(ll[-4]), int(ll[-3])])
+    # prev_params.sort(key=lambda x: x[0])
+
     prev_log_file = "exp/multistep/pgd_adapt_100_out/output.log"
 
-    prev_params = []
+    prev_k = []
     with open(prev_log_file, "r") as f:
         lines = f.readlines()
         lines = lines[2:-3]
         for l in lines:
             ll = l.strip().split("\t")
-            prev_params.append([int(ll[-4]), int(ll[-3])])
-    prev_params.sort(key=lambda x: x[0])
-    return prev_params
+            prev_k.append(int(ll[-4]))
+
+    prev_log_file = "exp/multistep/amata_exp_2_10_20_0.08_100/output.log"
+
+    prev_alpha = []
+    with open(prev_log_file, "r") as f:
+        lines = f.readlines()
+        lines = lines[2:-3]
+        for l in lines:
+            ll = l.strip().split("\t")
+            prev_alpha.append(int(ll[-3]))
+
+    return prev_k, prev_alpha
 
 def main():
     args = get_args()
@@ -143,8 +164,8 @@ def main():
 
     # initial k, alpha
     last_acc = 0.1**6
-    prev_params = adaptCompute_tmp()
-    assert len(prev_params) == args.epochs
+    prev_k, prev_alpha = adaptCompute_tmp()
+    assert len(prev_k) == len(prev_alpha) == args.epochs
 
     # Training
     start_train_time = time.time()
@@ -158,9 +179,10 @@ def main():
         # update k & alpha
         # Kt, Alphat = adaptCompute(last_acc, args)
         # Alphat = max(args.adapt_alpha_min, Alphat)
-        Kt, Alphat = prev_params[epoch]
-
+        Kt, Alphat = prev_k[epoch], prev_alpha[epoch]
+        # Alphat = Alphat if Kt > 1 else args.epsilon
         alpha = ( Alphat/ 255.) / std
+
         for i, (X, y) in enumerate(train_loader):
             X, y = X.cuda(), y.cuda()
             delta = torch.zeros_like(X).cuda()
