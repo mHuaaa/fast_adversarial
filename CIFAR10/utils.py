@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 import numpy as np
+from time import time
 from collections import defaultdict
 
 cifar10_mean = (0.4914, 0.4822, 0.4465)
@@ -32,10 +33,13 @@ def get_loaders(dir_, batch_size):
         transforms.Normalize(cifar10_mean, cifar10_std),
     ])
     num_workers = 2
+    test_time = time()
     train_dataset = datasets.CIFAR10(
-        dir_, train=True, transform=train_transform, download=True)
+        dir_, train=True, transform=train_transform, download=False)
     test_dataset = datasets.CIFAR10(
-        dir_, train=False, transform=test_transform, download=True)
+        dir_, train=False, transform=test_transform, download=False)
+    print("dataset time:", time()-test_time)
+    test_time = time()
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset,
         batch_size=batch_size,
@@ -50,6 +54,7 @@ def get_loaders(dir_, batch_size):
         pin_memory=True,
         num_workers=2,
     )
+    print("dataset time:", time() - test_time)
     return train_loader, test_loader
 
 
@@ -175,7 +180,7 @@ def evaluate_pgd4train(train_loader, model, attack_parses, sample_limit=500):
         for key in pgd_loss.keys():
             pgd_loss[key] = list(map(lambda x: x/n, pgd_loss[key]))
             pgd_acc[key] = list(map(lambda x: x/n, pgd_acc[key]))
-        return pgd_loss, pgd_acc
+        return pgd_loss, pgd_accd
 
     epsilon = (8 / 255.) / std
 
@@ -245,7 +250,7 @@ def chooseAttackParses(attack_parses, loss, acc, args, others=None):
     next_candidate_loss = []
     next_candidate_eval = []
 
-    if args.mode == 1:
+    if args.mode in [1]:
         print("history acc: ", others["history_acc"]/others['history_n'])
         print("pre acc: ", others["pre_acc"])
         # print("pre loss: ", others["pre_loss"])
@@ -266,7 +271,11 @@ def chooseAttackParses(attack_parses, loss, acc, args, others=None):
         elif args.mode == 2:
             penalty_loss = np.add(args.penalty_iters_coeff/atk_iter, np.divide(args.penalty_alpha_coeff, alphas))
             atk_eval = np.add(atk_loss, penalty_loss)
-
+        elif args.mode == 3:
+            penalty_alpha_loss = (-1)/np.subtract(args.epsilon*2+1, alphas)
+            penalty_iters_loss = args.penalty_iters_coeff/atk_iter
+            penalty_loss = penalty_iters_loss + penalty_alpha_loss
+            atk_eval = np.add(atk_loss, penalty_loss)
         else:
             print("Error chooseAttackParses mode!!")
             exit(0)
